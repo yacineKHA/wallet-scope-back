@@ -1,5 +1,5 @@
 import { PrismaClient } from "../generated/prisma";
-import { CreateUserDto, User } from "../models/user.model";
+import { CreateUserDto, User, UserFromTokenDto } from "../models/user.model";
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import {
@@ -19,6 +19,7 @@ import {
 } from "../services/jwt-services";
 import { v4 as uuidv4 } from "uuid";
 import { logError, logInfo, logWarn } from "../config/logger";
+import { AuthRequest } from "../types/auth-request";
 const prisma = new PrismaClient();
 
 /**
@@ -50,7 +51,7 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
         res,
         "L'email ou le mot de passe est incorrect",
         [],
-        404
+        401
       );
     }
     const isPasswordMatch = await bcrypt.compare(
@@ -66,7 +67,7 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
         res,
         "L'email ou le mot de passe est incorrect",
         [],
-        404
+        401
       );
     }
 
@@ -112,7 +113,7 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
       httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 5 * 60 * 1000, // 15 minutes
     });
 
     const { password, ...userDataToSend } = user; // Suppression du mot de passe de la réponse
@@ -382,3 +383,32 @@ export const refreshAccessToken = async (
 };
 
 
+/**
+ * Méthode de récupération de l'utilisateur connecté
+ * @param req Request - Objet Express
+ * @param res Response - Objet Express
+ * @returns Réponse JSON contenant l'utilisateur connecté
+ */
+export const getMe = async (
+  req: AuthRequest,
+  res: Response
+): Promise<Response> => {
+  const { userId } = req.auth as UserFromTokenDto;
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+    if (!user) {
+      return sendError(res, "Utilisateur non trouvé", [], 404);
+    }
+    const { password, createdAt, updatedAt, ...userDataToSend } = user;
+    return sendSuccess(res, userDataToSend, "Utilisateur trouvé", 200);
+  } catch (error) {
+    logError("Erreur lors de la récupération de l'utilisateur: ", error, {
+      userId: userId,
+    });
+    return sendError(res, "Erreur interne du serveur", [], 500);
+  }
+};

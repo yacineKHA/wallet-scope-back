@@ -40,6 +40,11 @@ const startMoralis = async () => {
   }
 };
 
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true,
+}));
+
 //Routes
 app.use("/api/user", userRoutes);
 app.use("/api/wallet", walletRoutes);

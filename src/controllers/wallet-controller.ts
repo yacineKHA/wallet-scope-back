@@ -19,7 +19,7 @@ export const addWallet = async (
   res: Response
 ): Promise<Response> => {
   const { walletAddress, walletName } = req.body;
-  const {userId} = req.auth as UserFromTokenDto;
+  const { userId } = req.auth as UserFromTokenDto;
   //const validationResult = addWalletSchema.safeParse(req.body);
 
   if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
@@ -59,7 +59,7 @@ export const getWallets = async (
   req: AuthRequest,
   res: Response
 ): Promise<Response> => {
-  const {userId} = req.auth as UserFromTokenDto;
+  const { userId } = req.auth as UserFromTokenDto;
 
   if (!userId) {
     return sendError(res, "User ID is required ", [], 400);
@@ -97,8 +97,8 @@ export const deleteWallet = async (
   req: AuthRequest,
   res: Response
 ): Promise<Response> => {
-  const {walletId} =  req.body;
-  const {userId} = req.auth as UserFromTokenDto;
+  const { walletId } = req.body;
+  const { userId } = req.auth as UserFromTokenDto;
 
   if (!walletId) {
     return sendError(res, "Wallet ID est requis", [], 400);
@@ -106,7 +106,7 @@ export const deleteWallet = async (
 
   try {
     await prisma.wallet.delete({
-      where: { id: walletId , userId: userId },
+      where: { id: walletId, userId: userId },
     });
 
     logInfo("Wallet supprimé avec succès: ", { walletId });
