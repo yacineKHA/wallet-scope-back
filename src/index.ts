@@ -22,7 +22,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 app.use(cors(corsOptions));
 
-const startMoralis = async () => {
+const startMoralis = async (): Promise<void> => {
   try {
     console.log("Démarrage de Moralis...");
     await Moralis.start({

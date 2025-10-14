@@ -11,7 +11,7 @@ router.post("/login" ,login);
 
 router.post("/refresh-token", refreshAccessToken);
 
-router.post("/logout", requireAuth, logout);
+router.post("/logout", logout);
 
 router.get("/me", requireAuth, getMe);
 

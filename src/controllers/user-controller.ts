@@ -20,6 +20,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { logError, logInfo, logWarn } from "../config/logger";
 import { AuthRequest } from "../types/auth-request";
+import { clearTokens } from "../utils/tokens";
 const prisma = new PrismaClient();
 
 /**
@@ -204,70 +205,39 @@ export const signup = async (
  * @param res Response - Objet Express
  * @returns Réponse JSON contenant le succès ou l'échec de la requete
  */
-export const logout = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
-  logInfo("Tentative de déconnexion: ");
+export const logout = async (req: Request, res: Response): Promise<Response> => {
+  // Supprimer cookies
+  res.clearCookie("r_token");
+  res.clearCookie("a_token");
+
   try {
     const refreshToken = req.cookies?.["r_token"];
     if (!refreshToken) {
-      logWarn("Aucune session à déconnecter - utilisateur non authentifié");
-      return sendError(res, "Aucune session à déconnecter", [], 400);
+      return sendSuccess(res, null, "Déconnexion réussie", 200);
     }
-    console.log("Refresh token: ", refreshToken);
-    const decodedToken: jwt.JwtPayload | string = jwt.verify(
+
+    const decodedToken = jwt.verify(
       refreshToken,
       process.env.REFRESH_TOKEN_SECRET!
     ) as jwt.JwtPayload;
-    if (
-      typeof decodedToken === "string" ||
-      !decodedToken.userId ||
-      !decodedToken.sessionId
-    ) {
-      logWarn("Token invalide - structure incorrecte");
-      return sendError(res, "Token invalide", [], 401);
+
+    if (!decodedToken.userId || !decodedToken.sessionId) {
+      return sendSuccess(res, null, "Déconnexion réussie", 200);
     }
-    console.log("Decoded token: ", decodedToken);
-    const session = await prisma.session.findUnique({
+
+    await prisma.session.deleteMany({
       where: {
         userId: decodedToken.userId,
         sessionId: decodedToken.sessionId,
-        isActive: true,
-        expiresAt: {
-          gt: new Date(),
-        },
       },
     });
-    if (!session) {
-      logWarn("Session non trouvée", { userId: decodedToken.userId });
-      return sendError(res, "Session non trouvée", [], 401);
-    }
 
-    const isRefreshTokenValid = await bcrypt.compare(
-      refreshToken,
-      session.refreshToken
-    );
-    if (!isRefreshTokenValid) {
-      logWarn("Refresh token invalide", { userId: decodedToken.userId });
-      return sendError(res, "Refresh token invalide", [], 401);
-    }
+    logInfo("Session supprimée", { sessionId: decodedToken.sessionId });
+    return sendSuccess(res, null, "Déconnexion réussie", 200);
 
-    await prisma.session.delete({
-      where: { id: session.id },
-    });
-
-    // Suppression des cookies
-    res.clearCookie("r_token");
-    res.clearCookie("a_token");
-
-    logInfo("Déconnexion réussie: ", { userId: decodedToken.userId });
-    return sendSuccess(res, "Déconnexion réussie", "", 200);
   } catch (error) {
-    logError("Erreur lors de la déconnexion: ", error, {
-      userId: req.body?.userId,
-    });
-    return sendError(res, "Erreur interne du serveur", [], 500);
+    logError("Erreur logout", error);
+    return sendSuccess(res, null, "Déconnexion réussie", 200);
   }
 };
 
@@ -286,6 +256,7 @@ export const refreshAccessToken = async (
 
   if (!refreshToken) {
     logWarn("Aucun refresh token trouvé");
+    clearTokens(res);
     return sendError(res, "Aucun refresh token trouvé", [], 401);
   }
   try {
@@ -297,6 +268,7 @@ export const refreshAccessToken = async (
 
     if (typeof decodedToken === "string" || !decodedToken.userId) {
       logWarn("Token invalide - structure incorrecte");
+      clearTokens(res);
       return sendError(res, "Token invalide", [], 401);
     }
 
@@ -316,6 +288,7 @@ export const refreshAccessToken = async (
     });
     if (!userSession) {
       logWarn("Session non trouvée", { userId: decodedToken.userId });
+      clearTokens(res);
       return sendError(res, "Session non trouvée", [], 401);
     }
 
@@ -325,7 +298,10 @@ export const refreshAccessToken = async (
       userSession.refreshToken
     );
     if (!isRefreshTokenValid) {
+      // Supprimer la session si le refresh token est invalide en cas de vol de token
+      await prisma.session.delete({ where: { id: userSession.id } });
       logWarn("Refresh token invalide", { userId: decodedToken.userId });
+      clearTokens(res);
       return sendError(res, "Refresh token invalide", [], 401);
     }
 
@@ -381,7 +357,6 @@ export const refreshAccessToken = async (
     return sendError(res, "Erreur interne du serveur", [], 500);
   }
 };
-
 
 /**
  * Méthode de récupération de l'utilisateur connecté
