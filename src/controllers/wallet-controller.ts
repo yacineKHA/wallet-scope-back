@@ -6,6 +6,8 @@ import { PrismaClient } from "../generated/prisma";
 import { AuthRequest } from "../types/auth-request";
 import { Wallet } from "../models/wallet.model";
 import { UserFromTokenDto } from "../models/user.model";
+import { getWalletComplete } from "../services/moralis-services";
+import { WalletPortfolio } from "../models/crypto.model";
 const prisma = new PrismaClient();
 
 /**
@@ -93,6 +95,55 @@ export const getWallets = async (
   }
 };
 
+
+/**
+ * Méthode de recup d'un portefeuille avec tous ses tokens, nfts...
+ * @param req Request - Objet Express
+ * @param res Response - Objet Express
+ * @returns Réponse JSON
+ */
+export const getWallet = async (
+  req: AuthRequest,
+  res: Response
+): Promise<Response> => {
+  const { walletAddress } = req.body;
+  const { userId } = req.auth as UserFromTokenDto;
+
+  if (!walletAddress) {
+    return sendError(res, "L'adresse du wallet est requise", [], 400);
+  }
+  try {
+    const wallet = await prisma.wallet.findFirst({
+      where: {
+        userId: userId,
+        walletAddress: walletAddress,
+      },
+    });
+
+    if (!wallet) {
+      logError("Wallet non trouvé: ", { walletAddress });
+      return sendError(res, "Wallet non trouvé", [], 404);
+    }
+
+    const result: WalletPortfolio = await getWalletComplete(walletAddress);
+    logInfo("Wallet complet récupéré: ", result);
+
+    return sendSuccess(res, { wallet, result }, "Wallet trouvé", 200);
+  } catch (error) {
+    logError("Erreur lors de la récupération du wallet: ", error, {
+      walletAddress: walletAddress,
+      userId: userId,
+    });
+    return sendError(res, "Erreur lors de la récupération du wallet", [], 500);
+  }
+};
+
+/**
+ * Méthode de suppression d'un portefeuille
+ * @param req Request - Objet Express
+ * @param res Response - Objet Express
+ * @returns Réponse JSON
+ */
 export const deleteWallet = async (
   req: AuthRequest,
   res: Response
