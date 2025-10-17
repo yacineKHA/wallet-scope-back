@@ -35,11 +35,18 @@ export const addWallet = async (
       address: walletAddress,
     });
     logInfo("wallet active chains: ", { response });
+
+    const isFirstWallet: boolean = await prisma.wallet.count({
+      where: {
+        userId: userId,
+      }}) === 0;
+
     await prisma.wallet.create({
       data: {
         userId: userId,
         walletAddress: walletAddress,
         walletName: walletName,
+        isPrimary: isFirstWallet
       },
     });
 
@@ -72,6 +79,10 @@ export const getWallets = async (
       where: {
         userId: userId,
       },
+      orderBy: [
+        { isPrimary: 'desc' },
+        { createdAt: 'asc' }
+      ]
     });
 
     logInfo("Wallets récupérées: ", { wallets });
@@ -148,7 +159,7 @@ export const deleteWallet = async (
   req: AuthRequest,
   res: Response
 ): Promise<Response> => {
-  const { walletId } = req.body;
+  const walletId = req.params.id;
   const { userId } = req.auth as UserFromTokenDto;
 
   if (!walletId) {
@@ -172,5 +183,43 @@ export const deleteWallet = async (
       [],
       500
     );
+  }
+};
+
+
+/**
+ * Méthode de mise à jour du wallet principal
+ * @param req Request - Objet Express
+ * @param res Response - Objet Express
+ * @returns Réponse JSON
+ */
+export const setPrimaryWallet = async (
+  req: AuthRequest,
+  res: Response
+): Promise<Response> => {
+
+  const walletId = req.params.id;
+  const { userId } = req.auth as UserFromTokenDto;
+
+  if (!walletId) {
+    return sendError(res, "Wallet ID est requis", [], 400);
+  }
+
+  try {
+    logInfo("Mise à jour du wallet principal en cours: ", { walletId });
+    await prisma.wallet.update({
+      where: {id: walletId, userId: userId},
+      data: {
+        isPrimary: true
+      }
+    })
+    logInfo("Wallet principal mis à jour avec succès: ", { walletId });
+    return sendSuccess(res, [], "Wallet principal mis à jour avec succès", 200);
+  } catch (error) {
+    logError("Erreur lors de la mise à jour du wallet principal: ", error, {
+      walletId: walletId,
+      userId: userId,
+    });
+    return sendError(res, "Erreur lors de la mise à jour du wallet principal", [], 500);
   }
 };

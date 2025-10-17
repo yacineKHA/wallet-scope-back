@@ -7,6 +7,7 @@ import cors from "cors";
 import userRoutes from "./routes/user-routes";
 import { corsOptions, rateLimitConfig } from "./middlewares/security";
 import walletRoutes from "./routes/wallet-routes";
+import authRoutes from "./routes/auth-routes";
 import Moralis from "moralis";
 
 const app = express();
@@ -46,6 +47,7 @@ app.use(cors({
 }));
 
 //Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/wallet", walletRoutes);
 

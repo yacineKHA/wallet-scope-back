@@ -4,13 +4,12 @@ import { addWallet, deleteWallet, getWallet, getWallets } from "../controllers/w
 
 const router = express.Router();
 
+router.get("/", requireAuth, getWallets);
 
-router.post("/add-wallet", requireAuth, addWallet);
+router.post("/", requireAuth, addWallet);
 
-router.get("/get-wallet", requireAuth, getWallet);
+router.post("/details", requireAuth, getWallet);
 
-router.get("/get-wallets", requireAuth, getWallets);
-
-router.delete("/delete-wallet", requireAuth, deleteWallet);
+router.delete("/:id", requireAuth, deleteWallet);
 
 export default router;
