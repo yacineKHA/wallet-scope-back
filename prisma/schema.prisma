@@ -62,4 +62,5 @@ model Wallet {
   @@index([walletAddress])
   @@unique([userId, walletAddress])
   @@unique([walletAddress, walletName])
+  @@unique([userId, isPrimary])
 }

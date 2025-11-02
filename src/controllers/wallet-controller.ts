@@ -207,12 +207,36 @@ export const setPrimaryWallet = async (
 
   try {
     logInfo("Mise à jour du wallet principal en cours: ", { walletId });
+
+    // Vérifie si le wallet existe
+    const wallet = await prisma.wallet.findFirst({
+      where: { id: walletId, userId: userId },
+    });
+    if (!wallet) {
+      return sendError(res, "Wallet non trouvé", [], 404);
+    }
+
+    // Le wallet n'est pas déjà le wallet principal ?
+    if (wallet.isPrimary) {
+      return sendError(res, "Le wallet est déjà le wallet principal", [], 400);
+    }
+
+    // met à jour l'ancien wallet principal
+    await prisma.wallet.updateMany({
+      where: {userId: userId, isPrimary: true},
+      data: {
+        isPrimary: false
+      }
+    })
+
+    // met à jour le nouveau wallet comme principal
     await prisma.wallet.update({
       where: {id: walletId, userId: userId},
       data: {
         isPrimary: true
       }
     })
+
     logInfo("Wallet principal mis à jour avec succès: ", { walletId });
     return sendSuccess(res, [], "Wallet principal mis à jour avec succès", 200);
   } catch (error) {
