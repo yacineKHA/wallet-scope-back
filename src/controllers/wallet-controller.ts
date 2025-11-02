@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { sendError, sendSuccess } from "../utils/response-helpers";
 import Moralis from "moralis";
 import { logError, logInfo } from "../config/logger";
-import { PrismaClient } from "../generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { AuthRequest } from "../types/auth-request";
 import { Wallet } from "../models/wallet.model";
 import { UserFromTokenDto } from "../models/user.model";

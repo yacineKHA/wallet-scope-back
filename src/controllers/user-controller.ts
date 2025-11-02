@@ -1,4 +1,4 @@
-import { PrismaClient } from "../generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { CreateUserDto, User, UserFromTokenDto } from "../models/user.model";
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
