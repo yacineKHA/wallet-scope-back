@@ -41,11 +41,6 @@ const startMoralis = async (): Promise<void> => {
   }
 };
 
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-}));
-
 //Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);

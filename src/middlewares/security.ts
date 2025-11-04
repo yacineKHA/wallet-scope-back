@@ -13,14 +13,14 @@ export const rateLimitConfig = rateLimit({
 
 export const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15min
-    max: 5, // Max 5 tentatives par IP
+    max: 10, // Max 10 tentatives par IP
     skipSuccessfulRequests: true
 });
 
 export const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
-        ? ['domaineprod'] 
-        : ['http://localhost:3000', 'http://localhost:5173'], 
+        ? [process.env.FRONT_END_PROD_URL] 
+        : [process.env.FRONT_END_DEV_URL], 
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: [
