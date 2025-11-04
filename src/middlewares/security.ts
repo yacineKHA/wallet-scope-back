@@ -19,8 +19,8 @@ export const authLimiter = rateLimit({
 
 export const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
-        ? [process.env.FRONT_END_PROD_URL] 
-        : [process.env.FRONT_END_DEV_URL], 
+        ? process.env.FRONT_END_PROD_URL 
+        : process.env.FRONT_END_DEV_URL, 
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: [
